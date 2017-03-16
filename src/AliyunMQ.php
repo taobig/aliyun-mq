@@ -87,7 +87,7 @@ class AliyunMQ
                 if ($try_times < $max_try_times) {
                     continue;
                 }
-                throw new MQException($topic, $result, "发送消息失败 ! {$http_code}");
+                throw new MQException($topic, $body, $result, "发送消息失败 ! {$http_code}");
             } catch (\Throwable $e) {
                 throw $e;
             } finally {
@@ -146,7 +146,7 @@ class AliyunMQ
                 }
                 return $messages;
             }
-            throw new MQException($topic, $result, "消费消息失败 ! {$http_code}");
+            throw new MQException($topic, '', $result, "消费消息失败 ! {$http_code}");
         } catch (\Throwable $e) {
             throw $e;
         } finally {
@@ -189,7 +189,7 @@ class AliyunMQ
                     return;
                 }
             }
-            throw new MQException($topic, $result, "删除消息失败 ! {$http_code}");
+            throw new MQException($topic, '', $result, "删除消息失败 ! {$http_code}");
         } catch (\Throwable $e) {
             throw $e;
         } finally {

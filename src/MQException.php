@@ -8,6 +8,7 @@ class MQException extends \Exception
 
     private $_topic_name;
     private $_topic_message;
+    private $_topic_response;
 
     public function getTopicName(): string
     {
@@ -22,15 +23,23 @@ class MQException extends \Exception
         return $this->_topic_message;
     }
 
+    public function getResponse(): string
+    {
+        return $this->_topic_response;
+    }
+
     /**
-     * @param string $message
+     * MQException constructor.
      * @param string $topic_name
-     * @param string|array $topic_message
+     * @param array|string $topic_message
+     * @param string $response
+     * @param string $message
      */
-    public function __construct(string $topic_name, $topic_message = '', string $message)
+    public function __construct(string $topic_name, $topic_message, string $response, string $message)
     {
         $this->_topic_name = $topic_name;
         $this->_topic_message = $topic_message;
+        $this->_topic_response = $response;
 
         parent::__construct($message);
     }
