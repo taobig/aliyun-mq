@@ -130,19 +130,21 @@ class AliyunMQ
             if (!$errno) {
                 $messages = [];
                 $response = json_decode($result, true);
-                foreach ($response as $item) {
-                    $msg = new Message();
-                    $msg->msgId = $item['msgId'];
-                    $msg->tag = $item['tag'];
-                    $msg->key = $item['key'];
-                    $msg->body = $item['body'];
-                    $msg->bornTime = $item['bornTime'];
-                    $msg->msgHandle = $item['msgHandle'];
-                    $msg->reconsumeTimes = $item['reconsumeTimes'];
+                if (is_array($response)) {
+                    foreach ($response as $item) {
+                        $msg = new Message();
+                        $msg->msgId = $item['msgId'];
+                        $msg->tag = $item['tag'];
+                        $msg->key = $item['key'];
+                        $msg->body = $item['body'];
+                        $msg->bornTime = $item['bornTime'];
+                        $msg->msgHandle = $item['msgHandle'];
+                        $msg->reconsumeTimes = $item['reconsumeTimes'];
 
-                    $messages[] = $msg;
+                        $messages[] = $msg;
+                    }
+                    return $messages;
                 }
-                return $messages;
             }
             throw new MQException($topic, $result, "消费消息失败 ! ");
         } catch (\Throwable $e) {
