@@ -75,6 +75,7 @@ class AliyunMQ
             try {
                 $result = curl_exec($ch);
                 $errno = curl_errno($ch);
+                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 if (!$errno) {
                     //{"code":"SC_BAD_REQUEST","info":"parameter:Signature is invalid,can not be null or empty"}
                     //{"msgId":"0A97CB496DE1137A9034915421F297A7","sendStatus":"SEND_OK"}
@@ -86,7 +87,7 @@ class AliyunMQ
                 if ($try_times < $max_try_times) {
                     continue;
                 }
-                throw new MQException($topic, $result, "发送消息失败 ! ");
+                throw new MQException($topic, $result, "发送消息失败 ! {$http_code}");
             } catch (\Throwable $e) {
                 throw $e;
             } finally {
@@ -127,26 +128,25 @@ class AliyunMQ
         try {
             $result = curl_exec($ch);
             $errno = curl_errno($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             if (!$errno) {
                 $messages = [];
                 $response = json_decode($result, true);
-                if (is_array($response)) {
-                    foreach ($response as $item) {
-                        $msg = new Message();
-                        $msg->msgId = $item['msgId'];
-                        $msg->tag = $item['tag'];
-                        $msg->key = $item['key'];
-                        $msg->body = $item['body'];
-                        $msg->bornTime = $item['bornTime'];
-                        $msg->msgHandle = $item['msgHandle'];
-                        $msg->reconsumeTimes = $item['reconsumeTimes'];
+                foreach ($response as $item) {
+                    $msg = new Message();
+                    $msg->msgId = $item['msgId'];
+                    $msg->tag = $item['tag'];
+                    $msg->key = $item['key'];
+                    $msg->body = $item['body'];
+                    $msg->bornTime = $item['bornTime'];
+                    $msg->msgHandle = $item['msgHandle'];
+                    $msg->reconsumeTimes = $item['reconsumeTimes'];
 
-                        $messages[] = $msg;
-                    }
-                    return $messages;
+                    $messages[] = $msg;
                 }
+                return $messages;
             }
-            throw new MQException($topic, $result, "消费消息失败 ! ");
+            throw new MQException($topic, $result, "消费消息失败 ! {$http_code}");
         } catch (\Throwable $e) {
             throw $e;
         } finally {
@@ -182,13 +182,14 @@ class AliyunMQ
         try {
             $result = curl_exec($ch);
             $errno = curl_errno($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             if (!$errno) {
                 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 if ($http_code == 204) {//request success
                     return;
                 }
             }
-            throw new MQException($topic, $result, "删除消息失败 ! ");
+            throw new MQException($topic, $result, "删除消息失败 ! {$http_code}");
         } catch (\Throwable $e) {
             throw $e;
         } finally {
