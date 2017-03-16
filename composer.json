@@ -8,6 +8,6 @@
         "php": ">=7.0.0"
     },
     "autoload": {
-        "psr-4": { "aiershou\\aliyun-mq\\": "src/" }
+        "psr-4": { "aiershou\\aliyunmq\\": "src/" }
     }
 }

@@ -10,8 +10,6 @@ use aiershou\aliyunmq\models\Message;
  */
 class AliyunMQ
 {
-    protected static $_instance = null;
-
     /**
      * @var string  the MQ's base http url
      */
