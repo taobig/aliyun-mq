@@ -29,9 +29,13 @@ $mq = new \aiershou\aliyunmq\AliyunMQ($url, $accessKey, $secretKey);
 //produce message
 $mq->produce($topic, $producerId, $message);
 
-//consume message
+//consume messages
 $messages = $mq->consume($topic, $consumerId);
 var_dump($messages);
+//delete messages
+foreach ($messages as $message) {
+    $mq->delete($topic, $consumerId, $message->msgHandle);
+}
 ```
 
 ## License

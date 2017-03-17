@@ -44,12 +44,11 @@ class AliyunMQ
         return ((float)$usec + (float)$sec);
     }
 
-    public function produce(string $topic, string $producerId, string $body)
+    public function produce(string $topic, string $producerId, string $body, string $tag = "http", string $key = "http")
     {
         $max_try_times = 3;
         $try_times = 0;
         while (true) {
-            ++$try_times;
             $date = time() * 1000;
             $newline = "\n";
             //签名字符串
@@ -63,7 +62,7 @@ class AliyunMQ
                 "Content-Type: text/html;charset=UTF-8",
             ];
 
-            $url = $this->base_url . "/message/?topic=" . $topic . "&time=" . $date . "&tag=http&key=http";
+            $url = sprintf("%s/message/?topic=%s&time=%d&tag=%s&key=%s", $this->base_url, $topic, $date, $tag, $key);
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
@@ -85,6 +84,7 @@ class AliyunMQ
                     }
                 }
                 if ($try_times < $max_try_times) {
+                    ++$try_times;
                     continue;
                 }
                 throw new MQException($topic, $body, $result, "发送消息失败 ! {$http_code}");
@@ -117,7 +117,7 @@ class AliyunMQ
             "Content-Type: text/html;charset=UTF-8",
         ];
 
-        $url = $this->base_url . "/message/?topic=" . $topic . "&time=" . $date . "&num=32";
+        $url = sprintf("%s/message/?topic=%s&time=%d&num=32", $this->base_url, $topic, $date);
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
@@ -160,7 +160,7 @@ class AliyunMQ
         //获取时间戳
         $date = (int)($this->microtime_float() * 1000);
         //构造删除Topic消息URL
-        $url = $this->base_url . "/message/?msgHandle=" . $messageHandle . "&topic=" . $topic . "&time=" . $date;
+        $url = sprintf("%s/message/?msgHandle=%s&topic=%s&time=%d", $this->base_url, $messageHandle, $topic, $date);
         //签名字符串
         $signString = $topic . $newline . $consumerId . $newline . $messageHandle . $newline . $date;
         //计算签名
