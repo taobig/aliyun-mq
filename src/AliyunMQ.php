@@ -88,8 +88,6 @@ class AliyunMQ
                     continue;
                 }
                 throw new MQException($topic, $body, $result, "发送消息失败 ! {$http_code}");
-            } catch (\Throwable $e) {
-                throw $e;
             } finally {
                 curl_close($ch);
             }
@@ -100,7 +98,7 @@ class AliyunMQ
      * @param string $topic
      * @param string $consumerId
      * @return Message[]
-     * @throws \Throwable
+     * @throws MQException
      */
     public function consume(string $topic, string $consumerId)
     {
@@ -147,8 +145,6 @@ class AliyunMQ
                 return $messages;
             }
             throw new MQException($topic, '', $result, "消费消息失败 ! {$http_code}");
-        } catch (\Throwable $e) {
-            throw $e;
         } finally {
             curl_close($ch);
         }
@@ -190,8 +186,6 @@ class AliyunMQ
                 }
             }
             throw new MQException($topic, '', $result, "删除消息失败 ! {$http_code}");
-        } catch (\Throwable $e) {
-            throw $e;
         } finally {
             curl_close($ch);
         }
