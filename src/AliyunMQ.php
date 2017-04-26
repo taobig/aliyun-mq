@@ -47,61 +47,55 @@ class AliyunMQ
 
     public function produce(string $topic, string $producerId, string $body, string $tag = "http", string $key = "http", $curlOptions = [])
     {
-        $max_try_times = 3;
-        $try_times = 0;
-        while (true) {
-            $date = time() * 1000;
-            $newline = "\n";
-            //签名字符串
-            $signString = $topic . $newline . $producerId . $newline . md5($body) . $newline . $date;
-            //计算签名
-            $signature = $this->sign($signString, $this->secret_key);
-            $headers = [
-                "Signature: " . $signature,//构造签名标记
-                "AccessKey: " . $this->access_key,//构造密钥标记
-                "ProducerID: " . $producerId,
-                "Content-Type: text/html;charset=UTF-8",
-            ];
+        $date = time() * 1000;
+        $newline = "\n";
+        //签名字符串
+        $signString = $topic . $newline . $producerId . $newline . md5($body) . $newline . $date;
+        //计算签名
+        $signature = $this->sign($signString, $this->secret_key);
+        $headers = [
+            "Signature: " . $signature,//构造签名标记
+            "AccessKey: " . $this->access_key,//构造密钥标记
+            "ProducerID: " . $producerId,
+            "Content-Type: text/html;charset=UTF-8",
+        ];
 
-            $url = sprintf("%s/message/?topic=%s&time=%d&tag=%s&key=%s", $this->base_url, $topic, $date, $tag, $key);
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $url = sprintf("%s/message/?topic=%s&time=%d&tag=%s&key=%s", $this->base_url, $topic, $date, $tag, $key);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 //            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, x);  //The number of seconds to wait while trying to connect. Use 0 to wait indefinitely.
 //            curl_setopt($ch, CURLOPT_TIMEOUT, x);
 //            CURLOPT_TIMEOUT_MS
-            if ($curlOptions) {
-                foreach ($curlOptions as $option => $val) {
-                    curl_setopt($ch, $option, $val);
-                }
-            }
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_FAILONERROR, false);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+//            CURLOPT_TIMEOUT_MS
+//              http://php.net/manual/zh/function.curl-setopt.php
+//            *_MS  must be used with   curl_setopt ( $ch, CURLOPT_NOSIGNAL, true);
+        if ($curlOptions) {
+            curl_setopt_array($ch, $curlOptions);
+        }
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
 
-            try {
-                $result = curl_exec($ch);
-                $errno = curl_errno($ch);
-                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                if (!$errno) {
-                    //{"code":"SC_BAD_REQUEST","info":"parameter:Signature is invalid,can not be null or empty"}
-                    //{"msgId":"0A97CB496DE1137A9034915421F297A7","sendStatus":"SEND_OK"}
-                    $o = json_decode($result, true);
-                    if (isset($o['sendStatus']) && $o['sendStatus'] == 'SEND_OK') {
-                        return $o['msgId'];
-                    }
+        try {
+            $result = curl_exec($ch);
+            $errno = curl_errno($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if (!$errno) {
+                //{"code":"SC_BAD_REQUEST","info":"parameter:Signature is invalid,can not be null or empty"}
+                //{"msgId":"0A97CB496DE1137A9034915421F297A7","sendStatus":"SEND_OK"}
+                $o = json_decode($result, true);
+                if (isset($o['sendStatus']) && $o['sendStatus'] == 'SEND_OK') {
+                    return $o['msgId'];
                 }
-                if ($try_times < $max_try_times) {
-                    ++$try_times;
-                    continue;
-                }
-                throw new MQException($topic, $body, $result, "发送消息失败 ! {$http_code}");
-            } finally {
-                curl_close($ch);
             }
+            throw new MQException($topic, $body, $result, "发送消息失败 ! {$http_code}");
+        } finally {
+            curl_close($ch);
         }
     }
+
 
     /**
      * @param string $topic
