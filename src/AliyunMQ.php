@@ -1,4 +1,5 @@
 <?php
+
 namespace aiershou\aliyunmq;
 
 use aiershou\aliyunmq\models\Message;
@@ -44,7 +45,7 @@ class AliyunMQ
         return ((float)$usec + (float)$sec);
     }
 
-    public function produce(string $topic, string $producerId, string $body, string $tag = "http", string $key = "http")
+    public function produce(string $topic, string $producerId, string $body, string $tag = "http", string $key = "http", $curlOptions = [])
     {
         $max_try_times = 3;
         $try_times = 0;
@@ -65,6 +66,14 @@ class AliyunMQ
             $url = sprintf("%s/message/?topic=%s&time=%d&tag=%s&key=%s", $this->base_url, $topic, $date, $tag, $key);
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+//            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, x);  //The number of seconds to wait while trying to connect. Use 0 to wait indefinitely.
+//            curl_setopt($ch, CURLOPT_TIMEOUT, x);
+//            CURLOPT_TIMEOUT_MS
+            if ($curlOptions) {
+                foreach ($curlOptions as $option => $val) {
+                    curl_setopt($ch, $option, $val);
+                }
+            }
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_FAILONERROR, false);
