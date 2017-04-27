@@ -3,6 +3,8 @@
 namespace aiershou\aliyunmq;
 
 use aiershou\aliyunmq\models\Message;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
 
 /**
  *
@@ -45,7 +47,7 @@ class AliyunMQ
         return ((float)$usec + (float)$sec);
     }
 
-    public function produce(string $topic, string $producerId, string $body, string $tag = "http", string $key = "http", $curlOptions = [])
+    public function produce(string $topic, string $producerId, string $body, string $tag = "http", string $key = "http", array $requestOptions = [])
     {
         $date = time() * 1000;
         $newline = "\n";
@@ -53,47 +55,34 @@ class AliyunMQ
         $signString = $topic . $newline . $producerId . $newline . md5($body) . $newline . $date;
         //计算签名
         $signature = $this->sign($signString, $this->secret_key);
+        $uri = sprintf("message/?topic=%s&time=%d&tag=%s&key=%s", $topic, $date, $tag, $key);
         $headers = [
-            "Signature: " . $signature,//构造签名标记
-            "AccessKey: " . $this->access_key,//构造密钥标记
-            "ProducerID: " . $producerId,
-            "Content-Type: text/html;charset=UTF-8",
+            "Signature" => $signature,//构造签名标记
+            "AccessKey" => $this->access_key,//构造密钥标记
+            "ProducerID" => $producerId,
+            "Content-Type" => "text/html;charset=UTF-8",
         ];
 
-        $url = sprintf("%s/message/?topic=%s&time=%d&tag=%s&key=%s", $this->base_url, $topic, $date, $tag, $key);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-//            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, x);  //The number of seconds to wait while trying to connect. Use 0 to wait indefinitely.
-//            curl_setopt($ch, CURLOPT_TIMEOUT, x);
-//            CURLOPT_TIMEOUT_MS
-//            CURLOPT_TIMEOUT_MS
-//              http://php.net/manual/zh/function.curl-setopt.php
-//            *_MS  must be used with   curl_setopt ( $ch, CURLOPT_NOSIGNAL, true);
-        if ($curlOptions) {
-            curl_setopt_array($ch, $curlOptions);
-        }
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_FAILONERROR, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        $client = new Client([
+            // Base URI is used with relative requests
+            'base_uri' => $this->base_url,//'http://httpbin.org',
+            // You can set any number of default request options.
+//            'timeout' => 6.0,//float
+        ]);
 
-        try {
-            $result = curl_exec($ch);
-            $errno = curl_errno($ch);
-            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            if (!$errno) {
-                //{"code":"SC_BAD_REQUEST","info":"parameter:Signature is invalid,can not be null or empty"}
-                //{"msgId":"0A97CB496DE1137A9034915421F297A7","sendStatus":"SEND_OK"}
-                $o = json_decode($result, true);
-                if (isset($o['sendStatus']) && $o['sendStatus'] == 'SEND_OK') {
-                    return $o['msgId'];
-                }
+        $request = new Request('POST', $uri, $headers, $body);
+        $response = $client->send($request, $requestOptions);//['timeout' => 0.01]
+        $httpCode = $response->getStatusCode();
+        if ($httpCode == 201) {
+            $body = $response->getBody();
+            //{"code":"SC_BAD_REQUEST","info":"parameter:Signature is invalid,can not be null or empty"}
+            //{"msgId":"0A97CB496DE1137A9034915421F297A7","sendStatus":"SEND_OK"}
+            $o = json_decode((string)$body, true);//(string)$body  ==>  Explicitly cast the body to a string
+            if (isset($o['sendStatus']) && $o['sendStatus'] == 'SEND_OK') {
+                return $o['msgId'];
             }
-            throw new MQException($topic, $body, $result, "发送消息失败 ! {$http_code}");
-        } finally {
-            curl_close($ch);
         }
+        throw new MQException($topic, $body, $body??'', "发送消息失败 ! ({$httpCode})");
     }
 
 
