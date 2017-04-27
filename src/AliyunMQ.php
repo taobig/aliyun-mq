@@ -47,6 +47,23 @@ class AliyunMQ
         return ((float)$usec + (float)$sec);
     }
 
+    /**
+     * @param string $topic
+     * @param string $producerId
+     * @param string $body
+     * @param string $tag
+     * @param string $key
+     * @param array $requestOptions
+     * $curlOptions = [
+     *  'curl' => [
+     *          CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+     *      ],
+     *      'connect_timeout' => 0.1,
+     *      'timeout' => 0.1,
+     * ];
+     * @return mixed
+     * @throws MQException
+     */
     public function produce(string $topic, string $producerId, string $body, string $tag = "http", string $key = "http", array $requestOptions = [])
     {
         $date = time() * 1000;
@@ -70,8 +87,12 @@ class AliyunMQ
 //            'timeout' => 6.0,//float
         ]);
 
-        $request = new Request('POST', $uri, $headers, $body);
-        $response = $client->send($request, $requestOptions);//['timeout' => 0.01]
+//        $request = new Request('POST', $uri, $headers, $body);
+//        $response = $client->send($request, $requestOptions);//['timeout' => 0.01]
+        $requestOptions['headers'] = $headers;
+        $requestOptions['body'] = $body;
+        $response = $client->request('POST', $uri, $requestOptions);
+
         $httpCode = $response->getStatusCode();
         if ($httpCode == 201) {
             $body = $response->getBody();
